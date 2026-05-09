@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trapezium Explorer</title>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/two.js/0.8.12/two.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Nunito', sans-serif;
+      background: linear-gradient(145deg, #4f46e5 0%, #7c3aed 50%, #9333ea 100%);
+      min-height: 100vh;
+      padding: 28px 20px 48px;
+      color: #1e293b;
+    }
+
+    h1 {
+      text-align: center;
+      color: white;
+      font-size: 2.5rem;
+      font-weight: 900;
+      margin-bottom: 24px;
+      text-shadow: 0 2px 12px rgba(0,0,0,0.25);
+      letter-spacing: -0.5px;
+    }
+
+    .container { max-width: 1060px; margin: 0 auto; }
+
+    .card {
+      background: white;
+      border-radius: 22px;
+      padding: 24px 28px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.18);
+      margin-bottom: 20px;
+    }
+
+    /* ── Canvas ── */
+    #canvas-wrap {
+      background: #f0f6ff;
+      border-radius: 14px;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    #canvas-container svg { display: block; }
+
+    /* ── Sliders ── */
+    .sliders { display: flex; gap: 32px; flex-wrap: wrap; }
+    .slider-group { flex: 1; min-width: 240px; }
+
+    .slider-label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #374151;
+    }
+
+    .slider-value {
+      background: #4f46e5;
+      color: white;
+      padding: 4px 14px;
+      border-radius: 20px;
+      font-weight: 800;
+      font-size: 1rem;
+      min-width: 72px;
+      text-align: center;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      height: 8px;
+      border-radius: 4px;
+      background: #e2e8f0;
+      outline: none;
+      cursor: pointer;
+      -webkit-appearance: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: #4f46e5;
+      cursor: pointer;
+      box-shadow: 0 2px 10px rgba(79,70,229,0.5);
+      transition: transform 0.12s;
+    }
+    input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.25); }
+
+    /* ── Checklists ── */
+    .checklists { display: flex; gap: 20px; flex-wrap: wrap; }
+
+    .checklist-card {
+      flex: 1;
+      min-width: 280px;
+      background: white;
+      border-radius: 22px;
+      padding: 26px 24px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.18);
+      border: 3px solid #e2e8f0;
+      transition: border-color 0.4s ease, box-shadow 0.4s ease;
+    }
+    .checklist-card.active {
+      border-color: #22c55e;
+      box-shadow: 0 10px 40px rgba(34,197,94,0.22);
+    }
+
+    .checklist-title {
+      font-size: 1.6rem;
+      font-weight: 900;
+      margin-bottom: 18px;
+      color: #1e293b;
+      letter-spacing: -0.3px;
+    }
+
+    /* Generic check item */
+    .check-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 13px 15px;
+      border-radius: 13px;
+      margin: 9px 0;
+      transition: background 0.35s ease, box-shadow 0.35s ease;
+    }
+
+    .check-icon {
+      font-size: 1.9rem;
+      font-weight: 900;
+      min-width: 34px;
+      text-align: center;
+      line-height: 1.15;
+      transition: color 0.35s ease, transform 0.25s ease;
+    }
+
+    .check-text {
+      padding-top: 3px;
+      line-height: 1.35;
+      transition: color 0.35s ease;
+    }
+
+    /* ── Property rows ── */
+    .check-item.prop { background: #f1f5f9; }
+    .check-item.prop .check-text { font-weight: 800; font-size: 1.05rem; color: #94a3b8; }
+    .check-item.prop .check-icon { color: #cbd5e1; }
+
+    .check-item.prop.checked { background: #16a34a; box-shadow: 0 4px 16px rgba(22,163,74,0.3); }
+    .check-item.prop.checked .check-text { color: white; }
+    .check-item.prop.checked .check-icon { color: white; transform: scale(1.15); }
+
+    /* ── Consequence rows (visually lighter, indented) ── */
+    .check-item.conseq {
+      margin-left: 14px;
+      background: #f8fafc;
+      border-left: 4px solid #e2e8f0;
+      border-radius: 4px 13px 13px 4px;
+      padding-left: 12px;
+    }
+    .check-item.conseq .check-text { font-weight: 600; font-size: 0.97rem; color: #cbd5e1; }
+    .check-item.conseq .check-icon { font-size: 1.55rem; color: #e2e8f0; }
+
+    .check-item.conseq.checked {
+      background: #dcfce7;
+      border-left-color: #22c55e;
+    }
+    .check-item.conseq.checked .check-text { color: #166534; }
+    .check-item.conseq.checked .check-icon { color: #16a34a; transform: scale(1.08); }
+
+    /* Divider between properties and consequences */
+    .prop-divider {
+      height: 1px;
+      background: #e2e8f0;
+      margin: 14px 0 10px;
+      position: relative;
+    }
+    .prop-divider::after {
+      content: 'therefore';
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: white;
+      padding: 0 8px;
+      color: #cbd5e1;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .checklist-card.active .prop-divider::after { color: #86efac; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>Trapezium Explorer</h1>
+
+  <div class="card">
+    <div id="canvas-wrap">
+      <div id="canvas-container"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="sliders">
+      <div class="slider-group">
+        <div class="slider-label">
+          <span>Top side length</span>
+          <span class="slider-value" id="top-display">8 cm</span>
+        </div>
+        <input type="range" id="top-slider" min="1" max="16" step="1" value="8">
+      </div>
+      <div class="slider-group">
+        <div class="slider-label">
+          <span>Slide top left / right</span>
+          <span class="slider-value" id="align-display">0 cm</span>
+        </div>
+        <input type="range" id="align-slider" min="-5" max="5" step="0.5" value="0">
+      </div>
+    </div>
+  </div>
+
+  <div class="checklists">
+
+    <!-- Trapezium card -->
+    <div class="checklist-card active" id="trap-card">
+      <div class="checklist-title">Trapezium</div>
+
+      <div class="check-item prop checked" id="trap-p1">
+        <div class="check-icon">✓</div>
+        <div class="check-text">At least one pair of parallel sides</div>
+      </div>
+
+      <div class="prop-divider"></div>
+
+      <div class="check-item conseq checked" id="trap-c1">
+        <div class="check-icon">✓</div>
+        <div class="check-text">Co-interior angles on the same side add up to 180°</div>
+      </div>
+    </div>
+
+    <!-- Parallelogram card -->
+    <div class="checklist-card" id="para-card">
+      <div class="checklist-title">Parallelogram</div>
+
+      <div class="check-item prop" id="para-p1">
+        <div class="check-icon">○</div>
+        <div class="check-text">Two pairs of parallel sides</div>
+      </div>
+      <div class="check-item prop" id="para-p2">
+        <div class="check-icon">○</div>
+        <div class="check-text">Opposite sides are equal in length</div>
+      </div>
+
+      <div class="prop-divider"></div>
+
+      <div class="check-item conseq" id="para-c1">
+        <div class="check-icon">○</div>
+        <div class="check-text">Opposite angles are equal</div>
+      </div>
+      <div class="check-item conseq" id="para-c2">
+        <div class="check-icon">○</div>
+        <div class="check-text">Co-interior angles add up to 180°</div>
+      </div>
+      <div class="check-item conseq" id="para-c3">
+        <div class="check-icon">○</div>
+        <div class="check-text">Diagonals bisect each other</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  // ── State ──
+  let topLen = 8;
+  let offset = 0;
+
+  // ── Two.js setup ──
+  const CW = 760, CH = 280;
+  const two = new Two({ width: CW, height: CH });
+  two.appendTo(document.getElementById('canvas-container'));
+  two.renderer.domElement.style.borderRadius = '14px';
+
+  // ── Transform: math coords → screen coords ──
+  // Math: BL=(0,0), BR=(8,0), TL=(offset,5), TR=(offset+topLen,5)
+  // Screen: y-flipped (up = smaller screen y)
+  function buildTransform() {
+    const xs = [0, 8, offset, offset + topLen];
+    const ys = [0, 5];
+    const xMin = Math.min(...xs) - 1.8;
+    const xMax = Math.max(...xs) + 1.8;
+    const yMin = -1.5;
+    const yMax = 6.5;
+
+    const scaleX = CW / (xMax - xMin);
+    const scaleY = CH / (yMax - yMin);
+    const s = Math.min(scaleX, scaleY);
+
+    const drawW = (xMax - xMin) * s;
+    const drawH = (yMax - yMin) * s;
+
+    // tx: screenX = mathX * s + tx
+    const tx = (CW - drawW) / 2 - xMin * s;
+    // ty: screenY = ty - mathY * s  (flip)
+    // at mathY=yMin → screenY = CH - (CH-drawH)/2
+    const screenBaseY = CH - (CH - drawH) / 2;
+    const ty = screenBaseY + yMin * s;
+
+    return { s, tx, ty };
+  }
+
+  function toScr(mx, my, t) {
+    return { x: mx * t.s + t.tx, y: t.ty - my * t.s };
+  }
+
+  // ── Drawing helpers ──
+  function label(txt, x, y, size, color, weight) {
+    const t = two.makeText(txt, x, y);
+    t.size = size;
+    t.fill = color;
+    t.weight = weight;
+    t.family = 'Nunito, sans-serif';
+    t.alignment = 'center';
+    return t;
+  }
+
+  function tickMark(p1, p2, n, color) {
+    const mx = (p1.x + p2.x) / 2;
+    const my = (p1.y + p2.y) / 2;
+    const dx = p2.x - p1.x, dy = p2.y - p1.y;
+    const len = Math.hypot(dx, dy);
+    if (len < 1) return;
+    const ux = dx / len, uy = dy / len;   // along side
+    const nx = -uy, ny = ux;               // perpendicular
+    const ts = 9, gap = 7;
+    for (let i = 0; i < n; i++) {
+      const sh = (i - (n - 1) / 2) * gap;
+      const cx = mx + ux * sh, cy = my + uy * sh;
+      const ln = two.makeLine(cx - nx * ts, cy - ny * ts, cx + nx * ts, cy + ny * ts);
+      ln.stroke = color;
+      ln.linewidth = 2.5;
+      ln.cap = 'round';
+    }
+  }
+
+  function arrowHead(from, to, color) {
+    // small arrowhead on the "to" end for dimension lines
+    const dx = to.x - from.x, dy = to.y - from.y;
+    const len = Math.hypot(dx, dy);
+    if (len < 1) return;
+    const ux = dx / len, uy = dy / len;
+    const side = 6;
+    const back = 10;
+    const tip = to;
+    const L = { x: tip.x - ux * back - uy * side, y: tip.y - uy * back + ux * side };
+    const R = { x: tip.x - ux * back + uy * side, y: tip.y - uy * back - ux * side };
+    const arr = two.makePath(tip.x, tip.y, L.x, L.y, R.x, R.y);
+    arr.fill = color;
+    arr.stroke = 'none';
+    arr.closed = true;
+  }
+
+  // ── Main draw ──
+  function redraw() {
+    two.clear();
+    const t = buildTransform();
+
+    const BL = toScr(0, 0, t);
+    const BR = toScr(8, 0, t);
+    const TL = toScr(offset, 5, t);
+    const TR = toScr(offset + topLen, 5, t);
+
+    const isPara = topLen === 8;
+
+    // filled shape
+    const shape = two.makePath(BL.x, BL.y, BR.x, BR.y, TR.x, TR.y, TL.x, TL.y);
+    shape.closed = true;
+    shape.fill = isPara ? '#ede9fe' : '#dbeafe';
+    shape.stroke = isPara ? '#7c3aed' : '#2563eb';
+    shape.linewidth = 3;
+
+    // parallel tick marks – top & bottom (single, blue)
+    tickMark(BL, BR, 1, '#2563eb');
+    tickMark(TL, TR, 1, '#2563eb');
+
+    // parallel tick marks – sides (double, purple) when parallelogram
+    if (isPara) {
+      tickMark(BL, TL, 2, '#7c3aed');
+      tickMark(BR, TR, 2, '#7c3aed');
+    }
+
+    // vertex dots
+    [BL, BR, TL, TR].forEach(p => {
+      const dot = two.makeCircle(p.x, p.y, 5);
+      dot.fill = isPara ? '#7c3aed' : '#2563eb';
+      dot.stroke = 'white';
+      dot.linewidth = 2.5;
+      dot.noStroke = false;
+    });
+
+    // dimension label – bottom
+    const botY = BL.y + 22;
+    label('8 cm', (BL.x + BR.x) / 2, botY, 16, '#1d4ed8', 800);
+
+    // dimension label – top
+    const topLabelY = TL.y - 22;
+    const topColor = isPara ? '#6d28d9' : '#1d4ed8';
+    label(`${topLen} cm`, (TL.x + TR.x) / 2, topLabelY, 16, topColor, 800);
+
+    // height annotation (right side)
+    const rightEdgeX = Math.max(BR.x, TR.x) + 28;
+    const vLine = two.makeLine(rightEdgeX, BL.y, rightEdgeX, TL.y);
+    vLine.stroke = '#94a3b8';
+    vLine.linewidth = 1.5;
+    // tick ends
+    [-1, 1].forEach(dir => {
+      const yp = dir === -1 ? BL.y : TL.y;
+      const tick = two.makeLine(rightEdgeX - 5, yp, rightEdgeX + 5, yp);
+      tick.stroke = '#94a3b8';
+      tick.linewidth = 1.5;
+    });
+    label('h = 5 cm', rightEdgeX + 30, (BL.y + TL.y) / 2, 13, '#64748b', 600);
+
+    two.update();
+    updateChecklists(isPara);
+  }
+
+  // ── Checklist ──
+  function setItem(id, checked) {
+    const el = document.getElementById(id);
+    const icon = el.querySelector('.check-icon');
+    el.classList.toggle('checked', checked);
+    icon.textContent = checked ? '✓' : '○';
+  }
+
+  function updateChecklists(isPara) {
+    // Trapezium: always all checked
+    setItem('trap-p1', true);
+    setItem('trap-c1', true);
+    document.getElementById('trap-card').classList.add('active');
+
+    // Parallelogram: only when top === bottom
+    ['para-p1', 'para-p2', 'para-c1', 'para-c2', 'para-c3'].forEach(id => setItem(id, isPara));
+    document.getElementById('para-card').classList.toggle('active', isPara);
+  }
+
+  // ── Slider wiring ──
+  const topSlider = document.getElementById('top-slider');
+  const alignSlider = document.getElementById('align-slider');
+  const topDisplay = document.getElementById('top-display');
+  const alignDisplay = document.getElementById('align-display');
+
+  topSlider.addEventListener('input', () => {
+    topLen = +topSlider.value;
+    topDisplay.textContent = topLen + ' cm';
+    redraw();
+  });
+
+  alignSlider.addEventListener('input', () => {
+    offset = +alignSlider.value;
+    const sign = offset > 0 ? '+' : '';
+    alignDisplay.textContent = (offset === 0 ? '0' : sign + offset) + ' cm';
+    redraw();
+  });
+
+  redraw();
+</script>
+</body>
+</html>
