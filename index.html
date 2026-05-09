@@ -221,7 +221,7 @@
           <span>Slide top left / right</span>
           <span class="slider-value" id="align-display">-5 cm</span>
         </div>
-        <input type="range" id="align-slider" min="-5" max="5" step="0.5" value="-5">
+        <input type="range" id="align-slider" min="-5" max="5" step="0.1" value="-5">
       </div>
     </div>
   </div>
@@ -537,7 +537,7 @@
   alignSlider.addEventListener('input', () => {
     offset = +alignSlider.value;
     const sign = offset > 0 ? '+' : '';
-    alignDisplay.textContent = (offset === 0 ? '0' : sign + offset) + ' cm';
+    alignDisplay.textContent = (offset === 0 ? '0.0' : sign + offset.toFixed(1)) + ' cm';
     redraw();
   });
 
