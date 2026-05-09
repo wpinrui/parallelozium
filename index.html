@@ -316,7 +316,7 @@
   let offset = -5;
 
   // ── Two.js setup ──
-  const CW = 760, CH = 280;
+  const CW = 900, CH = 300;
   const two = new Two({ width: CW, height: CH });
   two.appendTo(document.getElementById('canvas-container'));
   two.renderer.domElement.style.borderRadius = '14px';
@@ -324,28 +324,15 @@
   // ── Transform: math coords → screen coords ──
   // Math: BL=(0,0), BR=(8,0), TL=(offset,5), TR=(offset+topLen,5)
   // Screen: y-flipped (up = smaller screen y)
+  //
+  // Fixed transform derived from the full slider range so the bottom never shifts:
+  //   x in [-6, 20.5] cm  (offset −5..+5, topLen 4..12, annotation space right)
+  //   y in [-1.5, 6.5] cm
+  //   xRange=26.5, yRange=8, xCenter=7.25, yCenter=2.5
   function buildTransform() {
-    const xs = [0, 8, offset, offset + topLen];
-    const ys = [0, 5];
-    const xMin = Math.min(...xs) - 1.8;
-    const xMax = Math.max(...xs) + 1.8;
-    const yMin = -1.5;
-    const yMax = 6.5;
-
-    const scaleX = CW / (xMax - xMin);
-    const scaleY = CH / (yMax - yMin);
-    const s = Math.min(scaleX, scaleY);
-
-    const drawW = (xMax - xMin) * s;
-    const drawH = (yMax - yMin) * s;
-
-    // tx: screenX = mathX * s + tx
-    const tx = (CW - drawW) / 2 - xMin * s;
-    // ty: screenY = ty - mathY * s  (flip)
-    // at mathY=yMin → screenY = CH - (CH-drawH)/2
-    const screenBaseY = CH - (CH - drawH) / 2;
-    const ty = screenBaseY + yMin * s;
-
+    const s = Math.min(CW / 26.5, CH / 8);
+    const tx = CW / 2 - 7.25 * s;   // map x=7.25 → screen centre
+    const ty = CH / 2 + 2.5 * s;    // map y=2.5  → screen centre (y-flipped)
     return { s, tx, ty };
   }
 
@@ -393,6 +380,32 @@
     while (sweep > Math.PI)  sweep -= 2 * Math.PI;
     while (sweep <= -Math.PI) sweep += 2 * Math.PI;
 
+    const angleDeg = Math.abs(sweep) * 180 / Math.PI;
+
+    // Right angle → square corner marker instead of arc
+    if (Math.abs(angleDeg - 90) < 0.1) {
+      const d1x = nextV.x - V.x, d1y = nextV.y - V.y;
+      const l1 = Math.hypot(d1x, d1y);
+      const u1x = d1x/l1, u1y = d1y/l1;
+      const d2x = prevV.x - V.x, d2y = prevV.y - V.y;
+      const l2 = Math.hypot(d2x, d2y);
+      const u2x = d2x/l2, u2y = d2y/l2;
+      const sz = radius * 0.8;
+      const sq = two.makePath(
+        V.x + sz*u1x,           V.y + sz*u1y,
+        V.x + sz*(u1x + u2x),   V.y + sz*(u1y + u2y),
+        V.x + sz*u2x,           V.y + sz*u2y
+      );
+      sq.closed = false;
+      sq.fill = 'transparent';
+      sq.stroke = color;
+      sq.linewidth = 2;
+      const bx = u1x + u2x, by = u1y + u2y;
+      const bl = Math.hypot(bx, by) || 1;
+      label('90°', V.x + (sz + 16)*bx/bl, V.y + (sz + 16)*by/bl, 13, color, 700);
+      return;
+    }
+
     const N = 28;
 
     // Lightly filled sector (vertex + arc edge)
@@ -439,27 +452,31 @@
     const isPara = topLen === 8;
     const isRect = isPara && offset === 0;
 
+    // colour scheme: blue → trapezium, purple → parallelogram, teal → rectangle
+    const shapeStroke = isRect ? '#0d9488' : (isPara ? '#7c3aed' : '#2563eb');
+    const shapeFill   = isRect ? '#ccfbf1' : (isPara ? '#ede9fe' : '#dbeafe');
+
     // filled shape
     const shape = two.makePath(BL.x, BL.y, BR.x, BR.y, TR.x, TR.y, TL.x, TL.y);
     shape.closed = true;
-    shape.fill = isPara ? '#ede9fe' : '#dbeafe';
-    shape.stroke = isPara ? '#7c3aed' : '#2563eb';
+    shape.fill = shapeFill;
+    shape.stroke = shapeStroke;
     shape.linewidth = 3;
 
-    // parallel tick marks – top & bottom (single, blue)
+    // parallel tick marks – top & bottom (single, always blue)
     tickMark(BL, BR, 1, '#2563eb');
     tickMark(TL, TR, 1, '#2563eb');
 
-    // parallel tick marks – sides (double, purple) when parallelogram
+    // parallel tick marks – sides (double) when parallelogram
     if (isPara) {
-      tickMark(BL, TL, 2, '#7c3aed');
-      tickMark(BR, TR, 2, '#7c3aed');
+      tickMark(BL, TL, 2, shapeStroke);
+      tickMark(BR, TR, 2, shapeStroke);
     }
 
     // vertex dots
     [BL, BR, TL, TR].forEach(p => {
       const dot = two.makeCircle(p.x, p.y, 5);
-      dot.fill = isPara ? '#7c3aed' : '#2563eb';
+      dot.fill = shapeStroke;
       dot.stroke = 'white';
       dot.linewidth = 2.5;
       dot.noStroke = false;
@@ -471,7 +488,7 @@
 
     // dimension label – top
     const topLabelY = TL.y - 22;
-    const topColor = isPara ? '#6d28d9' : '#1d4ed8';
+    const topColor = isRect ? '#0f766e' : (isPara ? '#6d28d9' : '#1d4ed8');
     label(`${topLen} cm`, (TL.x + TR.x) / 2, topLabelY, 16, topColor, 800);
 
     // height annotation (right side)
