@@ -274,6 +274,39 @@
       </div>
     </div>
 
+    <!-- Rectangle card -->
+    <div class="checklist-card" id="rect-card">
+      <div class="checklist-title">Rectangle</div>
+
+      <div class="check-item prop" id="rect-p1">
+        <div class="check-icon">○</div>
+        <div class="check-text">Two pairs of parallel sides</div>
+      </div>
+      <div class="check-item prop" id="rect-p2">
+        <div class="check-icon">○</div>
+        <div class="check-text">All four angles are 90°</div>
+      </div>
+
+      <div class="prop-divider"></div>
+
+      <div class="check-item conseq" id="rect-c1">
+        <div class="check-icon">○</div>
+        <div class="check-text">Opposite angles are equal</div>
+      </div>
+      <div class="check-item conseq" id="rect-c2">
+        <div class="check-icon">○</div>
+        <div class="check-text">Co-interior angles add up to 180°</div>
+      </div>
+      <div class="check-item conseq" id="rect-c3">
+        <div class="check-icon">○</div>
+        <div class="check-text">Diagonals are equal in length</div>
+      </div>
+      <div class="check-item conseq" id="rect-c4">
+        <div class="check-icon">○</div>
+        <div class="check-text">Diagonals bisect each other</div>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -404,6 +437,7 @@
     const TR = toScr(offset + topLen, 5, t);
 
     const isPara = topLen === 8;
+    const isRect = isPara && offset === 0;
 
     // filled shape
     const shape = two.makePath(BL.x, BL.y, BR.x, BR.y, TR.x, TR.y, TL.x, TL.y);
@@ -462,7 +496,7 @@
     drawAngleArc(TL, BL, TR, arcR, '#ea580c');  // TL: next=BL, prev=TR
 
     two.update();
-    updateChecklists(isPara);
+    updateChecklists(isPara, isRect);
   }
 
   // ── Checklist ──
@@ -473,7 +507,7 @@
     icon.textContent = checked ? '✓' : '○';
   }
 
-  function updateChecklists(isPara) {
+  function updateChecklists(isPara, isRect) {
     // Trapezium: always all checked
     setItem('trap-p1', true);
     setItem('trap-c1', true);
@@ -482,6 +516,10 @@
     // Parallelogram: only when top === bottom
     ['para-p1', 'para-p2', 'para-c1', 'para-c2', 'para-c3'].forEach(id => setItem(id, isPara));
     document.getElementById('para-card').classList.toggle('active', isPara);
+
+    // Rectangle: parallelogram + all angles 90° (offset === 0)
+    ['rect-p1', 'rect-p2', 'rect-c1', 'rect-c2', 'rect-c3', 'rect-c4'].forEach(id => setItem(id, isRect));
+    document.getElementById('rect-card').classList.toggle('active', isRect);
   }
 
   // ── Slider wiring ──
