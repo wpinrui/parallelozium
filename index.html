@@ -350,21 +350,47 @@
     }
   }
 
-  function arrowHead(from, to, color) {
-    // small arrowhead on the "to" end for dimension lines
-    const dx = to.x - from.x, dy = to.y - from.y;
-    const len = Math.hypot(dx, dy);
-    if (len < 1) return;
-    const ux = dx / len, uy = dy / len;
-    const side = 6;
-    const back = 10;
-    const tip = to;
-    const L = { x: tip.x - ux * back - uy * side, y: tip.y - uy * back + ux * side };
-    const R = { x: tip.x - ux * back + uy * side, y: tip.y - uy * back - ux * side };
-    const arr = two.makePath(tip.x, tip.y, L.x, L.y, R.x, R.y);
-    arr.fill = color;
-    arr.stroke = 'none';
-    arr.closed = true;
+  // ── Angle arc: draws a lightly-filled sector + stroke arc + degree label ──
+  // Polygon traversal order is BL→BR→TR→TL (CCW in screen coords).
+  // At each vertex V, sweep from dir(V→nextV) to dir(V→prevV) gives the interior angle.
+  function drawAngleArc(V, nextV, prevV, radius, color) {
+    const aN = Math.atan2(nextV.y - V.y, nextV.x - V.x);
+    const aP = Math.atan2(prevV.y - V.y, prevV.x - V.x);
+    let sweep = aP - aN;
+    while (sweep > Math.PI)  sweep -= 2 * Math.PI;
+    while (sweep <= -Math.PI) sweep += 2 * Math.PI;
+
+    const N = 28;
+
+    // Lightly filled sector (vertex + arc edge)
+    const sc = [V.x, V.y];
+    for (let i = 0; i <= N; i++) {
+      const a = aN + sweep * (i / N);
+      sc.push(V.x + radius * Math.cos(a), V.y + radius * Math.sin(a));
+    }
+    const sector = two.makePath(...sc);
+    sector.closed = true;
+    sector.fill = color;
+    sector.opacity = 0.15;
+    sector.stroke = 'transparent';
+
+    // Stroke arc along outer edge
+    const ac = [];
+    for (let i = 0; i <= N; i++) {
+      const a = aN + sweep * (i / N);
+      ac.push(V.x + radius * Math.cos(a), V.y + radius * Math.sin(a));
+    }
+    const arc = two.makePath(...ac);
+    arc.closed = false;
+    arc.fill = 'transparent';
+    arc.stroke = color;
+    arc.linewidth = 2;
+
+    // Degree label at arc midpoint
+    const deg = (Math.abs(sweep) * 180 / Math.PI).toFixed(1) + '°';
+    const mid = aN + sweep / 2;
+    const lr = radius + 17;
+    label(deg, V.x + lr * Math.cos(mid), V.y + lr * Math.sin(mid), 13, color, 700);
   }
 
   // ── Main draw ──
@@ -427,6 +453,13 @@
       tick.linewidth = 1.5;
     });
     label('h = 5 cm', rightEdgeX + 30, (BL.y + TL.y) / 2, 13, '#64748b', 600);
+
+    // Angle arcs — left co-interior pair: orange; right: teal
+    const arcR = Math.max(20, t.s * 0.65);
+    drawAngleArc(BL, BR, TL, arcR, '#ea580c');  // BL: next=BR, prev=TL
+    drawAngleArc(BR, TR, BL, arcR, '#0891b2');  // BR: next=TR, prev=BL
+    drawAngleArc(TR, TL, BR, arcR, '#0891b2');  // TR: next=TL, prev=BR
+    drawAngleArc(TL, BL, TR, arcR, '#ea580c');  // TL: next=BL, prev=TR
 
     two.update();
     updateChecklists(isPara);
