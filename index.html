@@ -212,16 +212,16 @@
       <div class="slider-group">
         <div class="slider-label">
           <span>Top side length</span>
-          <span class="slider-value" id="top-display">8 cm</span>
+          <span class="slider-value" id="top-display">4.0 cm</span>
         </div>
-        <input type="range" id="top-slider" min="1" max="16" step="1" value="8">
+        <input type="range" id="top-slider" min="4" max="12" step="0.1" value="4">
       </div>
       <div class="slider-group">
         <div class="slider-label">
           <span>Slide top left / right</span>
-          <span class="slider-value" id="align-display">0 cm</span>
+          <span class="slider-value" id="align-display">-5 cm</span>
         </div>
-        <input type="range" id="align-slider" min="-5" max="5" step="0.5" value="0">
+        <input type="range" id="align-slider" min="-5" max="5" step="0.5" value="-5">
       </div>
     </div>
   </div>
@@ -279,8 +279,8 @@
 
 <script>
   // ── State ──
-  let topLen = 8;
-  let offset = 0;
+  let topLen = 4;
+  let offset = -5;
 
   // ── Two.js setup ──
   const CW = 760, CH = 280;
@@ -492,7 +492,7 @@
 
   topSlider.addEventListener('input', () => {
     topLen = +topSlider.value;
-    topDisplay.textContent = topLen + ' cm';
+    topDisplay.textContent = topLen.toFixed(1) + ' cm';
     redraw();
   });
 
